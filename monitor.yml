@@ -1,0 +1,41 @@
+name: Trackman Bay Monitor
+
+on:
+  schedule:
+    # Runs every 15 minutes
+    - cron: '*/15 * * * *'
+  # Allows manual trigger from the Actions tab (useful for testing)
+  workflow_dispatch:
+
+jobs:
+  check-bays:
+    name: Check Offline Bays
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install playwright
+
+      - name: Install Playwright browser (Chromium only)
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run bay monitor
+        env:
+          TM_EMAIL:            ${{ secrets.TM_EMAIL }}
+          TM_PASSWORD:         ${{ secrets.TM_PASSWORD }}
+          GMAIL_USER:          ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
+          # Comma-separated list — e.g. "you@gmail.com,cody@gmail.com"
+          ALERT_EMAILS:        ${{ secrets.ALERT_EMAILS }}
+        run: python monitor.py
