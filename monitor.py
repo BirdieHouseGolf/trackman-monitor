@@ -3,6 +3,8 @@ import smtplib
 import re
 import os
 import sys
+import json
+import base64
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -16,6 +18,12 @@ CONTROL_ROOM_URL = (
 
 
 async def get_bay_status():
+    cookies_b64 = os.environ.get("TM_COOKIES", "")
+    if not cookies_b64:
+        raise ValueError("TM_COOKIES not set — run export_cookies.py and add the output as a GitHub Secret")
+
+    cookies = json.loads(base64.b64decode(cookies_b64).decode())
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
@@ -26,31 +34,22 @@ async def get_bay_status():
                 "Chrome/124.0.0.0 Safari/537.36"
             ),
         )
+        await context.add_cookies(cookies)
         page = await context.new_page()
 
         try:
-            # ── Step 1: Log in ────────────────────────────────────────────────
-            print("Navigating to login page...")
-            await page.goto("https://portal.trackmangolf.com/login", wait_until="domcontentloaded", timeout=30_000)
-            await page.wait_for_selector('input[placeholder="E-mail or username"]', timeout=30_000)
-            await page.screenshot(path="login-page.png", full_page=True)
-
-            await page.fill('input[placeholder="E-mail or username"]', os.environ["TM_EMAIL"])
-            await page.fill('input[type="password"]', os.environ["TM_PASSWORD"])
-            await page.click('button:has-text("SIGN IN")')
-            await page.wait_for_load_state("networkidle", timeout=30_000)
-            print(f"Logged in — current URL: {page.url}")
-
-            # ── Step 2: Navigate to control room ─────────────────────────────
             print("Navigating to Control Room...")
             await page.goto(CONTROL_ROOM_URL, wait_until="networkidle", timeout=30_000)
 
-            # Wait for the status badges to appear
-            await page.wait_for_selector("text=Offline", timeout=20_000)
+            if "login" in page.url.lower():
+                raise ValueError("Session expired — re-run export_cookies.py and update the TM_COOKIES secret")
 
+            print(f"Loaded — URL: {page.url}")
+            await page.screenshot(path="dashboard.png", full_page=True)
+
+            await page.wait_for_selector("text=Offline", timeout=20_000)
             page_content = await page.content()
 
-            # ── Step 3: Parse status counts ──────────────────────────────────
             def extract_count(label):
                 pattern = rf'{label}\s*\((\d+)\)'
                 match = re.search(pattern, page_content)
@@ -61,10 +60,6 @@ async def get_bay_status():
             offline   = extract_count("Offline")
             alerts    = extract_count("Alerts")
 
-            # Also grab bay-level details for the email body
-            bay_details = []
-            bay_cards = await page.query_selector_all("[class*='bay'], [class*='Bay']")
-            # Fallback: just use the summary counts — reliable enough
             print(f"Status → Available: {available}, Occupied: {occupied}, Offline: {offline}, Alerts: {alerts}")
 
             return {
@@ -156,7 +151,6 @@ async def main():
     else:
         print("✅ All bays healthy — no alert needed.")
 
-    # Exit with code 1 if alert fired (useful for GH Actions logging)
     sys.exit(0)
 
 
