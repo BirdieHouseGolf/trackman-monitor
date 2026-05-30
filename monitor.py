@@ -31,11 +31,13 @@ async def get_bay_status():
         try:
             # ── Step 1: Log in ────────────────────────────────────────────────
             print("Navigating to login page...")
-            await page.goto("https://portal.trackmangolf.com/login", wait_until="networkidle", timeout=30_000)
+            await page.goto("https://portal.trackmangolf.com/login", wait_until="domcontentloaded", timeout=30_000)
+            await page.wait_for_selector('input[placeholder="E-mail or username"]', timeout=30_000)
+            await page.screenshot(path="login-page.png", full_page=True)
 
-            await page.fill('input[type="email"]', os.environ["TM_EMAIL"])
+            await page.fill('input[placeholder="E-mail or username"]', os.environ["TM_EMAIL"])
             await page.fill('input[type="password"]', os.environ["TM_PASSWORD"])
-            await page.click('button[type="submit"]')
+            await page.click('button:has-text("SIGN IN")')
             await page.wait_for_load_state("networkidle", timeout=30_000)
             print(f"Logged in — current URL: {page.url}")
 
