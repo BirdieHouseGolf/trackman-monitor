@@ -6,7 +6,6 @@ import sys
 import json
 import base64
 from datetime import datetime
-from zoneinfo import ZoneInfo
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
@@ -147,14 +146,8 @@ async def main():
     trigger_alert = status["offline"] > 0 or status["alerts"] > 0
 
     if trigger_alert:
-          now_et = datetime.now(ZoneInfo("America/Toronto"))
-        quiet_start = now_et.replace(hour=2, minute=30, second=0, microsecond=0)
-        quiet_end   = now_et.replace(hour=4,  minute=0,  second=0, microsecond=0)
-        if quiet_start <= now_et < quiet_end:
-            print(f"⏸️  Alert suppressed — quiet hours 2:30–4:00am ET (now {now_et.strftime('%I:%M%p ET')})")
-        else:
-            print("⚠️  Alert condition detected — sending email...")
-            send_alert_email(status)
+        print("⚠️  Alert condition detected — sending email...")
+        send_alert_email(status)
     else:
         print("✅ All bays healthy — no alert needed.")
 
