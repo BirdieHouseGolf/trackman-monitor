@@ -34,6 +34,7 @@ jobs:
         env:
           TM_EMAIL:            ${{ secrets.TM_EMAIL }}
           TM_PASSWORD:         ${{ secrets.TM_PASSWORD }}
+          TM_COOKIES:          ${{ secrets.TM_COOKIES }}
           GMAIL_USER:          ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
           # Comma-separated list — e.g. "you@gmail.com,cody@gmail.com"
