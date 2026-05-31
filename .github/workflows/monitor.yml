@@ -3,7 +3,7 @@ name: Trackman Bay Monitor
 on:
   schedule:
     # Runs every 1 minute
-    - cron: '*/1 * * * *'
+    - cron: '*/5 * * * *'
   # Allows manual trigger from the Actions tab (useful for testing)
   workflow_dispatch:
 
